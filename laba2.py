@@ -33,36 +33,54 @@ def nelder_mead(f, x0, alpha=1.0, beta=0.5, gamma=2.0, tol=1e-6, max_iter=1000):
 
         # отражение худшей вершины
         reflected = centroid + alpha * (centroid - simplex[-1])
-        reflected_values = f(*reflected)
+        reflected_value = f(*reflected)
+
+        """
+            Отражаем худшую точку относительно центроида
+            Если отраженная точка улучшает результат (но не слишком сильно), заменяем худшую точку на отраженную.
+        """
 
         # проверка, попадает ли отраженная точка в диапазон улучшений
-        if values[0] <= reflected_values < values[-2]:
+        if values[0] <= reflected_value < values[-2]:
             simplex[-1] = reflected
-            values[-1] = reflected_values
+            values[-1] = reflected_value
             continue
 
         # проверка на возможность расширения
-        if reflected_values < values[0]:
+        if reflected_value < values[0]:
             expanded = centroid + gamma * (centroid - simplex[-1])
-            expanded_values = f(*expanded)
+            expanded_value = f(*expanded)
+
+            """
+                Если отражение сильно улучшает результат, пробуем "растянуться" в этом направлении
+                Если расширенная точка лучше отраженной, используем её вместо худшей.
+            """
 
             # заменяем худшую точку на расширенную, если это дает улучшение
-            if expanded_values < reflected_values:
+            if expanded_value < reflected_value:
                 simplex[-1] = expanded
-                values[-1] = expanded_values
+                values[-1] = expanded_value
             else:
                 simplex[-1] = reflected
-                values[-1] = reflected_values
+                values[-1] = reflected_value
             continue
 
         # пробуем сжатие
         contracted = centroid + beta * (simplex[-1] - centroid)
         contracted_value = f(*contracted)
 
+        """
+            Если отражение не дало улучшения, пробуем сжать худшую точку к центроиду
+            Если сжатие улучшает результат, заменяем худшую точку на сжатую
+        """
+
         if contracted_value < values[-1]:
             simplex[-1] = contracted
             values[-1] = contracted_value
         else:
+            """
+                Если ни одно из предыдущих действий не улучшает результат, "сжимаем" весь симплекс к лучшей точке
+            """
             # уменьшаем размер симплекса
             simplex = simplex[0] + (simplex - simplex[0]) * beta
             values = np.array([f(*simplex[i]) for i in range(n + 1)])
@@ -81,8 +99,14 @@ def gradient_descent(f, x0, initial_step=0.1, tol=1e-6, max_iter=1000):
 
     for iteration in range(max_iter):
         grad = gradient(x)  # вычисляем градиент
+        """
+            Для минимизации идём в противоположном направлении
+        """
         x_new = x - step_size * grad  # обновляем значение x
-
+        """
+            Проверяем, насколько сильно изменился x за одну итерацию
+            Если условие выполнено, останавливаемся
+        """
         # проверка на сходимость
         if np.linalg.norm(x_new - x) < tol:
             break
@@ -91,7 +115,7 @@ def gradient_descent(f, x0, initial_step=0.1, tol=1e-6, max_iter=1000):
         if f(*x_new) < f(*x):
             x = x_new  # обновляем x, если значение функции уменьшилось
         else:
-            step_size *= 0.5  # уменьшаем шаг, если улучшения нет
+            step_size *= 0.5  # уменьшаем шаг, если улучшения нет. это помогает избежать расходимости
 
     return x, f(*x), iteration + 1  # возвращаем точку минимума, значение функции и число итераций
 
@@ -118,8 +142,8 @@ print(f"Значение функции в этой точке: {min_value_gradi
 print(f"Количество итераций: {iterations_gradient}")
 
 # визуализация функции и точек минимума
-x1 = np.linspace(-2, 4, 400)
-x2 = np.linspace(-2, 4, 400)
+x1 = np.linspace(-2, 2, 400)
+x2 = np.linspace(-2, 2, 400)
 X1, X2 = np.meshgrid(x1, x2)
 Z = f(X1, X2)
 
